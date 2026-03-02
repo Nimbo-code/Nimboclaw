@@ -1,0 +1,224 @@
+name: Nimboclaw
+options:
+  bundleIdPrefix: nimbo.claw
+  deploymentTarget:
+    iOS: "18.0"
+    tvOS: "18.0"
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+
+packages:
+  OpenClawKit:
+    path: shared/OpenClawKit
+  OpenClawGatewayCore:
+    path: shared/OpenClawGatewayCore
+  NimboCore:
+    path: shared/NimboCore
+  Swabble:
+    path: Swabble
+
+schemes:
+  Nimboclaw:
+    shared: true
+    build:
+      targets:
+        Nimboclaw: all
+    test:
+      targets:
+        - NimboclawTests
+  NimboclawTV:
+    shared: true
+    build:
+      targets:
+        NimboclawTV: all
+
+targets:
+  Nimboclaw:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    dependencies:
+      - package: OpenClawKit
+      - package: OpenClawKit
+        product: OpenClawChatUI
+      - package: OpenClawKit
+        product: OpenClawProtocol
+      - package: OpenClawGatewayCore
+      - package: NimboCore
+      - package: Swabble
+        product: SwabbleKit
+      - sdk: AppIntents.framework
+    preBuildScripts:
+      - name: SwiftFormat (lint)
+        basedOnDependencyAnalysis: false
+        inputFileLists:
+          - $(SRCROOT)/SwiftSources.input.xcfilelist
+        script: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if ! command -v swiftformat >/dev/null 2>&1; then
+            echo "error: swiftformat not found (brew install swiftformat)" >&2
+            exit 1
+          fi
+          swiftformat --lint --config "$SRCROOT/.swiftformat" \
+            --filelist "$SRCROOT/SwiftSources.input.xcfilelist"
+      - name: SwiftLint
+        basedOnDependencyAnalysis: false
+        inputFileLists:
+          - $(SRCROOT)/SwiftSources.input.xcfilelist
+        script: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if ! command -v swiftlint >/dev/null 2>&1; then
+            echo "error: swiftlint not found (brew install swiftlint)" >&2
+            exit 1
+          fi
+          swiftlint lint --config "$SRCROOT/.swiftlint.yml" --use-script-input-file-lists
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: Y5PE65HELJ
+        PRODUCT_BUNDLE_IDENTIFIER: nimbo.claw.ios
+        PROVISIONING_PROFILE_SPECIFIER: "nimbo.claw.ios Development"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        ENABLE_APPINTENTS_METADATA: NO
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Nimboclaw
+        CFBundleIconName: AppIcon
+        CFBundleShortVersionString: "2026.2.25"
+        CFBundleVersion: "20260225"
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIBackgroundModes:
+          - audio
+        NSLocalNetworkUsageDescription: Nimboclaw discovers and connects to your gateway on the local network.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoadsInWebContent: true
+        NSBonjourServices:
+          - _openclaw-gw._tcp
+        NSCameraUsageDescription: Nimboclaw can capture photos or short video clips when requested via the gateway.
+        NSLocationWhenInUseUsageDescription: Nimboclaw uses your location when you allow location sharing.
+        NSLocationAlwaysAndWhenInUseUsageDescription: Nimboclaw can share your location in the background when you enable Always.
+        NSMicrophoneUsageDescription: Nimboclaw needs microphone access for voice wake.
+        NSMotionUsageDescription: Nimboclaw uses motion data to detect device orientation and activity.
+        NSPhotoLibraryUsageDescription: Nimboclaw can save captured photos and videos to your photo library.
+        NSSpeechRecognitionUsageDescription: Nimboclaw uses on-device speech recognition for voice wake.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+
+  NimboclawTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Nimboclaw
+      - package: NimboCore
+      - package: Swabble
+        product: SwabbleKit
+      - sdk: AppIntents.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: nimbo.claw.ios.tests
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Nimboclaw.app/Nimboclaw"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+    info:
+      path: Tests/Info.plist
+      properties:
+        CFBundleDisplayName: NimboclawTests
+        CFBundleShortVersionString: "2026.2.25"
+        CFBundleVersion: "20260225"
+
+  NimboclawTV:
+    type: application
+    platform: tvOS
+    sources:
+      - path: Sources
+        includes:
+          - OpenClawApp.swift
+          - Assets.xcassets
+          - Gateway/TVOSLocalGatewayRuntime.swift
+          - Gateway/KeychainStore.swift
+          - Settings/OpenClawBackupManager.swift
+          - TVOS
+    dependencies:
+      - package: OpenClawGatewayCore
+    preBuildScripts:
+      - name: SwiftFormat (lint)
+        basedOnDependencyAnalysis: false
+        inputFileLists:
+          - $(SRCROOT)/SwiftSources.input.xcfilelist
+        script: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if ! command -v swiftformat >/dev/null 2>&1; then
+            echo "error: swiftformat not found (brew install swiftformat)" >&2
+            exit 1
+          fi
+          swiftformat --lint --config "$SRCROOT/.swiftformat" \
+            --filelist "$SRCROOT/SwiftSources.input.xcfilelist"
+      - name: SwiftLint
+        basedOnDependencyAnalysis: false
+        inputFileLists:
+          - $(SRCROOT)/SwiftSources.input.xcfilelist
+        script: |
+          set -euo pipefail
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if ! command -v swiftlint >/dev/null 2>&1; then
+            echo "error: swiftlint not found (brew install swiftlint)" >&2
+            exit 1
+          fi
+          swiftlint lint --config "$SRCROOT/.swiftlint.yml" --use-script-input-file-lists
+    settings:
+      base:
+        CODE_SIGN_IDENTITY: "Apple Development"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: Y5PE65HELJ
+        PRODUCT_BUNDLE_IDENTIFIER: nimbo.claw.tvos
+        PROVISIONING_PROFILE_SPECIFIER: "nimbo.claw.tvos Development"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        ENABLE_APPINTENTS_METADATA: NO
+    info:
+      path: Sources/Info-tvOS.plist
+      properties:
+        CFBundleDisplayName: Nimboclaw
+        CFBundleIconName: AppIcon
+        CFBundleIcons:
+          CFBundlePrimaryIcon: "App Icon & Top Shelf Image"
+        TVTopShelfImage:
+          TVTopShelfPrimaryImage: "Top Shelf Image"
+          TVTopShelfPrimaryImageWide: "Top Shelf Image Wide"
+        CFBundleShortVersionString: "2026.2.25"
+        CFBundleVersion: "20260225"
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSLocalNetworkUsageDescription: Nimboclaw discovers and connects to your gateway on the local network.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoadsInWebContent: true
+        NSBonjourServices:
+          - _openclaw-gw._tcp
+        NSMicrophoneUsageDescription: Nimboclaw needs microphone access for voice wake.
+        NSMotionUsageDescription: Nimboclaw uses motion data to detect device orientation and activity.
+        NSPhotoLibraryUsageDescription: Nimboclaw can save captured photos and videos to your photo library.
+        NSSpeechRecognitionUsageDescription: Nimboclaw uses on-device speech recognition for voice wake.
